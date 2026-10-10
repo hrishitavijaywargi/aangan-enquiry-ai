@@ -17,7 +17,7 @@ export async function systemStatus() {
         emailProblem ??
         (process.env.RESEND_API_KEY ? `Resend configured. Handoffs to ${c.handoffTo}, escalations to ${c.escalationTo}.` : `SMTP configured (${c.host}). Handoffs to ${c.handoffTo}, escalations to ${c.escalationTo}.`),
     },
-    database: dbKey() === "pg" ? "Postgres (Supabase)" : "SQLite (local file)",
+    database: dbKey() === "pg" ? "Postgres (Supabase)" : process.env.VERCEL ? "TEMPORARY demo database — set DATABASE_URL in Vercel to use Supabase (data here resets)" : "SQLite (local file)",
     integrations: integrationStatus(),
     demoRows,
   };

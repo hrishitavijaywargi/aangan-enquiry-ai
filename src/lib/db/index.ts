@@ -6,6 +6,7 @@
  * SQL is written once with `?` placeholders in the common subset of both dialects.
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 export type Param = string | number | null;
@@ -82,7 +83,8 @@ const splitStatements = (sql: string) => sql.split(";").map((s) => s.trim()).fil
 // ── SQLite ────────────────────────────────────────────────────────────────────
 async function openSqlite(): Promise<Db> {
   const { DatabaseSync } = await import("node:sqlite");
-  const p = process.env.AANGAN_DB_PATH ?? path.join(process.cwd(), "data", "aangan.db");
+  // On Vercel without DATABASE_URL the filesystem is read-only except /tmp: use a temporary demo database there.
+  const p = process.env.AANGAN_DB_PATH ?? (process.env.VERCEL ? path.join(os.tmpdir(), "aangan.db") : path.join(process.cwd(), "data", "aangan.db"));
   if (p !== ":memory:") fs.mkdirSync(path.dirname(p), { recursive: true });
   const raw = new DatabaseSync(p);
   raw.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
