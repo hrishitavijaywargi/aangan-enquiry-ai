@@ -115,7 +115,35 @@ async function openSqlite(): Promise<Db> {
 }
 
 // ── Postgres (Supabase) ───────────────────────────────────────────────────────
+/** Explains what's wrong with a DATABASE_URL without ever revealing it (the password stays secret). */
+export function describeDatabaseUrlProblem(raw: string): string | null {
+  const v = raw;
+  const problems: string[] = [];
+  if (/^\s|\s$/.test(v)) problems.push("it has spaces or a line break at the start/end");
+  if (/^["']|["']$/.test(v.trim())) problems.push("it is wrapped in quote marks");
+  if (/^DATABASE_URL\s*=/i.test(v.trim())) problems.push("the value itself starts with 'DATABASE_URL=' (put only the postgresql:// line in the Value box)");
+  if (/^https?:\/\//i.test(v.trim())) problems.push("it is the https:// project link, not the postgresql:// connection string from Connect → Transaction pooler");
+  else if (!/^postgres(ql)?:\/\//i.test(v.trim())) problems.push("it does not start with postgresql://");
+  if (/\[|\]/.test(v)) problems.push("it still contains [ ] brackets (replace [YOUR-PASSWORD] entirely with your password)");
+  if (/YOUR-PASSWORD/i.test(v)) problems.push("it still contains the placeholder YOUR-PASSWORD");
+  const afterScheme = v.trim().replace(/^postgres(ql)?:\/\//i, "");
+  const atCount = (afterScheme.match(/@/g) ?? []).length;
+  if (atCount === 0) problems.push("it has no '@' between the password and the host");
+  if (atCount > 1) problems.push("the password contains '@' (reset it to letters and numbers only)");
+  if (/[#?\/%]/.test(afterScheme.split("@")[0] ?? "")) problems.push("the password contains a special character (# ? / %) — reset it to letters and numbers only");
+  if (/\s/.test(v.trim())) problems.push("it contains a space inside the line");
+  if (!/:6543\//.test(v) && /pooler\.supabase\.com/.test(v)) problems.push("it is not the Transaction pooler (port 6543)");
+  try {
+    new URL(v.trim());
+  } catch {
+    if (!problems.length) problems.push("it is not a valid URL");
+  }
+  return problems.length ? `DATABASE_URL is malformed: ${problems.join("; ")}.` : null;
+}
+
 async function openPostgres(url: string): Promise<Db> {
+  const problem = describeDatabaseUrlProblem(url);
+  if (problem) throw new Error(problem);
   const { default: postgres } = await import("postgres");
   const sql = postgres(url, {
     prepare: false, // required for Supabase's transaction pooler (port 6543)
