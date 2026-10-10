@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aangan Components Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Swimlane: rows are actors, columns are the six stages; numbered cards trace one call. */
+:root {
+  --paper: #f1f1ec; --sheet: #ffffff; --ink: #1c2321; --muted: #5d6763; --line: #dde0da;
+  --lane: #173a34; --lane-ink: #e8f0ed; --lane-sub: #9fbab3; --alt: #f8f8f4;
+  --trigger: #6a4bc4; --input: #2f6fd1; --context: #2f8a4a; --process: #c06d12; --ai: #c43c74; --output: #a2452f; --human: #6b4a2f;
+  --display: "Archivo", "Arial Narrow", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--ink); font: 13px/1.45 var(--body); }
+.page { width: 1560px; padding: 40px 48px 48px; }
+.eyebrow { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 800 36px/1.05 var(--display); font-stretch: 80%; margin: 10px 0 10px; letter-spacing: -.005em; }
+.lede { margin: 0; max-width: 92ch; color: var(--muted); font-size: 14px; }
+.legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border: 2px solid; border-radius: 3px; display: inline-block; }
+
+.board { position: relative; margin-top: 22px; border-radius: 8px; overflow: hidden; background: var(--sheet); border: 1px solid var(--line); }
+.grid { display: grid; grid-template-columns: 170px repeat(6, minmax(0, 1fr)); }
+.head { background: var(--lane); color: var(--lane-ink); padding: 12px 14px; text-align: center; }
+.head:first-child { text-align: left; }
+.head b { display: block; font: 700 15px/1.1 var(--display); font-stretch: 88%; }
+.head small { font: 400 10.5px/1.3 var(--mono); color: var(--lane-sub); }
+.actor { background: var(--lane); color: var(--lane-ink); padding: 14px; display: flex; flex-direction: column; justify-content: center; border-top: 1px solid #23514a; }
+.actor b { font: 700 14px/1.15 var(--display); font-stretch: 90%; }
+.actor small { font: 400 10.5px/1.35 var(--mono); color: var(--lane-sub); margin-top: 3px; }
+.cell { border-top: 1px solid var(--line); border-left: 1px solid #eef0ea; padding: 12px 10px; min-height: 96px; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; }
+.row-alt { background: var(--alt); }
+.actor.row-alt { background: #1d443d; }
+
+.card {
+  position: relative; z-index: 2; width: 100%; max-width: 200px; background: var(--sheet);
+  border: 1.5px solid var(--c); border-radius: 6px; padding: 9px 10px 8px; font-size: 12px; line-height: 1.4;
+}
+.card .n { display: inline-block; min-width: 20px; padding: 1px 5px; border-radius: 4px; background: var(--c); color: #fff; font: 600 10.5px/1.5 var(--mono); text-align: center; margin-right: 5px; }
+.card b { font-weight: 600; }
+.card .t { display: block; margin-top: 5px; font: 400 10.5px/1.35 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.trigger { --c: var(--trigger); } .input { --c: var(--input); } .context { --c: var(--context); }
+.process { --c: var(--process); } .ai { --c: var(--ai); } .output { --c: var(--output); } .human { --c: var(--human); }
+
+svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+svg.wires path { fill: none; stroke: #8a938f; stroke-width: 1.3; stroke-dasharray: 4 3; }
+
+.panels { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; margin-top: 20px; }
+.panel { background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; }
+.panel h2 { font: 700 18px/1.15 var(--display); font-stretch: 85%; margin: 0 0 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; }
+th { text-align: left; font: 500 10px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding: 0 8px 8px 0; border-bottom: 1px solid var(--line); }
+td { padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; width: 24%; }
+td:nth-child(2) { width: 15%; }
+.pill { display: inline-block; font: 600 10px/1 var(--mono); padding: 4px 7px; border-radius: 10px; white-space: nowrap; }
+.pill.live { background: #ddf1e2; color: #1d6b35; }
+.pill.ready { background: #e2ecfa; color: #24589f; }
+.pill.fix { background: #fbe8d6; color: #8f4f0c; }
+.pill.off { background: #ececec; color: #555; }
+ul.why { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 12.5px; }
+ul.why b { font-weight: 600; }
+.note { margin-top: 12px; font-size: 11.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <div class="eyebrow">MESA Case 03 · Aangan Studio · as built on 10 Oct 2026</div>
+  <h1>Components map: one call, from ring to handoff</h1>
+  <p class="lede">Rows are the actors, columns are the stages. Follow the numbers. Steps 2a, 3a and 10a are a real phone call through Vaani; 2b and 10b are the same conversation in the website's call simulator. Both paths meet at step 4 and run identical rules from there.</p>
+  <div class="legend">
+    <span><i style="border-color:var(--trigger)"></i>Trigger</span><span><i style="border-color:var(--input)"></i>Input</span>
+    <span><i style="border-color:var(--context)"></i>Context</span><span><i style="border-color:var(--process)"></i>Processing (code)</span>
+    <span><i style="border-color:var(--ai)"></i>AI</span><span><i style="border-color:var(--output)"></i>Output</span><span><i style="border-color:var(--human)"></i>Human</span>
+  </div>
+
+  <div class="board" id="board">
+    <svg class="wires" id="wires"></svg>
+    <div class="grid">
+      <div class="head"><b>Actor</b></div>
+      <div class="head"><b>Trigger</b><small>what starts it</small></div>
+      <div class="head"><b>Input</b><small>what comes in</small></div>
+      <div class="head"><b>Context</b><small>what it knows</small></div>
+      <div class="head"><b>Processing</b><small>rules in code</small></div>
+      <div class="head"><b>AI</b><small>where a model helps</small></div>
+      <div class="head"><b>Output</b><small>what leaves</small></div>
+
+      <!-- Caller -->
+      <div class="actor"><b>Caller</b><small>prospect or client, any hour</small></div>
+      <div class="cell"><div class="card trigger" id="s1"><span class="n">1</span><b>Calls Aangan, day or night:</b> rings the studio number, or a demo call starts on the website.</div></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+
+      <!-- Vaani -->
+      <div class="actor row-alt"><b>Vaani Voice</b><small>phone agent "aangan-front-desk"</small></div>
+      <div class="cell row-alt"></div>
+      <div class="cell row-alt"><div class="card input" id="s2a"><span class="n">2a</span><b>Picks up in seconds;</b> speech-to-text on the caller's voice (English, India).<span class="t">Vaani STT · welcome line</span></div></div>
+      <div class="cell row-alt"></div><div class="cell row-alt"></div>
+      <div class="cell row-alt"></div>
+      <div class="cell row-alt"><div class="card output" id="s10a"><span class="n">10a</span><b>Speaks our exact words</b> back to the caller, one question at a time.<span class="t">Vaani text-to-speech</span></div></div>
+
+      <!-- Website -->
+      <div class="actor"><b>Website /calls</b><small>call simulator (demo)</small></div>
+      <div class="cell"></div>
+      <div class="cell"><div class="card input" id="s2b"><span class="n">2b</span><b>Caller's lines typed</b> or auto-played from the Sept 2026 transcripts.<span class="t">/calls · /api/calls/say</span></div></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="cell"><div class="card output" id="s10b"><span class="n">10b</span><b>Shows the reply live</b>, with the record and the five criteria updating each turn.<span class="t">simulator panels</span></div></div>
+
+      <!-- BYOL bridge -->
+      <div class="actor row-alt"><b>BYOL bridge</b><small>npm run vaani · laptop + Cloudflare tunnel</small></div>
+      <div class="cell row-alt"></div>
+      <div class="cell row-alt"><div class="card input" id="s3a"><span class="n">3a</span><b>Receives each turn</b> over a WebSocket and keeps only the new speech. Vaani's own AI is off (no fallback).<span class="t">vaaniByol.ts · Bring Your Own LLM</span></div></div>
+      <div class="cell row-alt"></div><div class="cell row-alt"></div><div class="cell row-alt"></div><div class="cell row-alt"></div>
+
+      <!-- Business rules -->
+      <div class="actor"><b>Aangan's rules</b><small>services · qualified · pricing .md</small></div>
+      <div class="cell"></div><div class="cell"></div>
+      <div class="cell"><div class="card context" id="s5"><span class="n">5</span><b>Pune/PCMC area list, scope limits, 6-week minimum,</b> the five criteria, and the exact pricing and decline lines. No price figure is ever spoken.<span class="t">config/business.ts</span></div></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+
+      <!-- Rules engine -->
+      <div class="actor row-alt"><b>Rules engine</b><small>src/lib · runs on Vercel and in the bridge</small></div>
+      <div class="cell row-alt"></div><div class="cell row-alt"></div><div class="cell row-alt"></div>
+      <div class="cell row-alt">
+        <div class="card process" id="s6"><span class="n">6</span><b>Extracts facts with the caller's own quote:</b> scope, area, location, timeline, volunteered budget, decision-maker.<span class="t">extract.ts</span></div>
+        <div class="card process" id="s8"><span class="n">8</span><b>Five criteria, every turn</b> → Qualified · Not qualified · Ask one question · Escalate.<span class="t">qualification.ts · 113 tests</span></div>
+        <div class="card process" id="s9"><span class="n">9</span><b>Picks the reply;</b> price question → script verbatim. The price guard checks every sentence.<span class="t">agent.ts · pricingGuard.ts</span></div>
+      </div>
+      <div class="cell row-alt"></div><div class="cell row-alt"></div>
+
+      <!-- Claude -->
+      <div class="actor"><b>Claude</b><small>optional · claude-opus-5-5</small></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="cell">
+        <div class="card ai" id="s7"><span class="n">7</span><b>Fills gaps</b> in the extracted facts. Never decides; can't overwrite what the caller said.<span class="t">ai/provider.ts</span></div>
+        <div class="card ai" id="s11"><span class="n">11</span><b>Writes the call summary</b> for the designer when the call ends.<span class="t">template summary if no key</span></div>
+      </div>
+      <div class="cell"></div>
+
+      <!-- Supabase -->
+      <div class="actor row-alt"><b>Supabase</b><small>Postgres, Mumbai</small></div>
+      <div class="cell row-alt"></div><div class="cell row-alt"></div>
+      <div class="cell row-alt"><div class="card context" id="s4"><span class="n">4</span><b>Opens the call record:</b> same number within 30 days joins the same enquiry, so nothing is asked twice or counted twice.<span class="t">enquiries · calls</span></div></div>
+      <div class="cell row-alt"></div><div class="cell row-alt"></div>
+      <div class="cell row-alt"><div class="card output" id="s12"><span class="n">12</span><b>Saves the outcome,</b> transcript, criteria evidence and cost; feeds the dashboard.<span class="t">aangan-enquiry-ai.vercel.app</span></div></div>
+
+      <!-- Email & alerts -->
+      <div class="actor"><b>Email &amp; alerts</b><small>Resend · Telegram · HubSpot</small></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="cell"><div class="card output" id="s13"><span class="n">13</span><b>Qualified →</b> designer handoff email (+ HubSpot deal, Calendly link). <b>Complaint →</b> URGENT email + Telegram alert.<span class="t">handoff.ts · integrations</span></div></div>
+
+      <!-- People -->
+      <div class="actor row-alt"><b>People</b><small>designers · studio head · Nikhil · desk</small></div>
+      <div class="cell row-alt"></div><div class="cell row-alt"></div><div class="cell row-alt"></div><div class="cell row-alt"></div><div class="cell row-alt"></div>
+      <div class="cell row-alt"><div class="card human" id="s14"><span class="n">14</span><b>Designer calls back</b> and gives the price at the consultation. Studio head handles complaints. Nikhil reads the dashboard.</div></div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <h2>What each part is, and its status today</h2>
+      <table>
+        <thead><tr><th>Component</th><th>Status</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Vaani phone agent</td><td><span class="pill ready">Connected</span></td><td>BYOL "Test Connection" succeeded and the agent saved; first live voice call still to run.</td></tr>
+          <tr><td>Website call simulator</td><td><span class="pill live">Live</span></td><td>Full scripted calls end to end on aangan-enquiry-ai.vercel.app/calls.</td></tr>
+          <tr><td>Rules engine (code)</td><td><span class="pill live">Live</span></td><td>113 automated tests, incl. pricing-guard and all 23 Sept scenarios.</td></tr>
+          <tr><td>Claude</td><td><span class="pill off">Optional</span></td><td>Mock mode today (no API key); deterministic extractor and template summary run instead.</td></tr>
+          <tr><td>Supabase database</td><td><span class="pill fix">Being fixed</span></td><td>Project and tables created; Vercel's database link needs the corrected password. Site runs on a temporary demo database meanwhile.</td></tr>
+          <tr><td>Email handoff (Resend)</td><td><span class="pill off">Not set</span></td><td>Handoffs saved as previews marked "Not sent" until a key is added.</td></tr>
+          <tr><td>Telegram · HubSpot · Calendly</td><td><span class="pill off">Built, off</span></td><td>Each switches on with its key; 8 tests with the services faked.</td></tr>
+          <tr><td>Founder dashboard</td><td><span class="pill live">Live</span></td><td>aangan-enquiry-ai.vercel.app — outcomes, response times, cost per enquiry.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Why it's shaped this way</h2>
+      <ul class="why">
+        <li><b>Code decides, AI assists.</b> The five criteria and the pricing rule run as code (steps 6, 8, 9). Claude only fills gaps and summarises (7, 11); Vaani only listens and speaks (2a, 10a).</li>
+        <li><b>No price ever leaves the system.</b> Price questions get pricing.md's line word for word, and the price guard checks every sentence before it is spoken (9). Vaani's own model is off, so it can't improvise one (3a).</li>
+        <li><b>Two doors, one brain.</b> The phone line and the website simulator meet at step 4 and run identical rules.</li>
+        <li><b>A person exactly where judgment is needed.</b> Designers price and judge fit; the studio head owns complaints; Nikhil owns the rubric and records outcomes (14).</li>
+        <li><b>Email for the record, Telegram for urgency.</b> The designer gets one complete, searchable note; only urgent cases also ping a phone (13).</li>
+      </ul>
+      <p class="note">Not in scope for this build: WhatsApp and the website form. They would enter at step 4 with the same rules.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// Dashed connectors drawn from the cards' real positions, in step order.
+const path = [["s1","s2a"],["s1","s2b"],["s2a","s3a"],["s3a","s4"],["s2b","s4"],["s4","s5"],["s5","s6"],["s6","s7"],["s7","s8"],["s8","s9"],["s9","s10a"],["s9","s10b"],["s9","s11"],["s11","s12"],["s12","s13"],["s13","s14"]];
+function draw() {
+  const board = document.getElementById("board").getBoundingClientRect();
+  const svg = document.getElementById("wires");
+  svg.setAttribute("viewBox", `0 0 ${board.width} ${board.height}`);
+  const box = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return { l: r.left - board.left, r: r.right - board.left, t: r.top - board.top, b: r.bottom - board.top, cx: (r.left + r.right) / 2 - board.left, cy: (r.top + r.bottom) / 2 - board.top }; };
+  let d = "";
+  for (const [a, b] of path) {
+    const A = box(a), B = box(b);
+    if (B.l > A.r + 4) { const mx = (A.r + B.l) / 2; d += `M${A.r},${A.cy}H${mx}V${B.cy}H${B.l} `; }
+    else if (A.l > B.r + 4) { const mx = (B.r + A.l) / 2; d += `M${A.l},${A.cy}H${mx}V${B.cy}H${B.r} `; }
+    else if (B.t > A.b) { const my = (A.b + B.t) / 2; d += `M${A.cx},${A.b}V${my}H${B.cx}V${B.t} `; }
+    else { const my = (B.b + A.t) / 2; d += `M${A.cx},${A.t}V${my}H${B.cx}V${B.b} `; }
+  }
+  svg.innerHTML = `<path d="${d}"/>`;
+  document.body.dataset.ready = "1";
+}
+document.fonts.ready.then(() => requestAnimationFrame(draw));
+</script>
+</body>
+</html>
