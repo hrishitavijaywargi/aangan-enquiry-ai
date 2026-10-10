@@ -1,5 +1,5 @@
 import { aiStatus } from "./ai/provider";
-import { count, dbKey } from "./db";
+import { count, databaseUrlWarning, dbKey } from "./db";
 import { emailConfig, emailConfigProblem } from "./email/mailer";
 import { integrationStatus } from "./integrations";
 import { telephonyStatus } from "./telephony";
@@ -17,7 +17,7 @@ export async function systemStatus() {
         emailProblem ??
         (process.env.RESEND_API_KEY ? `Resend configured. Handoffs to ${c.handoffTo}, escalations to ${c.escalationTo}.` : `SMTP configured (${c.host}). Handoffs to ${c.handoffTo}, escalations to ${c.escalationTo}.`),
     },
-    database: dbKey() === "pg" ? "Postgres (Supabase)" : process.env.VERCEL ? "TEMPORARY demo database — set DATABASE_URL in Vercel to use Supabase (data here resets)" : "SQLite (local file)",
+    database: dbKey() === "pg" ? "Postgres (Supabase)" : databaseUrlWarning() ? `TEMPORARY demo database — ${databaseUrlWarning()}` : process.env.VERCEL ? "TEMPORARY demo database — set DATABASE_URL in Vercel to use Supabase (data here resets)" : "SQLite (local file)",
     integrations: integrationStatus(),
     demoRows,
   };

@@ -189,15 +189,25 @@ async function openPostgres(url: string): Promise<Db> {
 // ── Connection cache (survives Next.js hot reloads and warm serverless invocations) ──
 const g = globalThis as unknown as { __aanganDb?: Promise<Db>; __aanganDbKey?: string };
 
+/** Why DATABASE_URL is being ignored (malformed), or null. The site falls back instead of crashing. */
+export function databaseUrlWarning(): string | null {
+  const url = process.env.DATABASE_URL;
+  return url ? describeDatabaseUrlProblem(url) : null;
+}
+
+const usablePgUrl = () => (process.env.DATABASE_URL && !databaseUrlWarning() ? process.env.DATABASE_URL : undefined);
+
 export function dbKey() {
-  return process.env.DATABASE_URL ? "pg" : `sqlite:${process.env.AANGAN_DB_PATH ?? "file"}`;
+  return usablePgUrl() ? "pg" : `sqlite:${process.env.AANGAN_DB_PATH ?? "file"}`;
 }
 
 export function getDb(): Promise<Db> {
   const key = dbKey();
   if (!g.__aanganDb || g.__aanganDbKey !== key) {
     g.__aanganDbKey = key;
-    g.__aanganDb = process.env.DATABASE_URL ? openPostgres(process.env.DATABASE_URL) : openSqlite();
+    const pg = usablePgUrl();
+    if (process.env.DATABASE_URL && !pg) console.error(`[db] ${databaseUrlWarning()} Falling back to a temporary SQLite database.`);
+    g.__aanganDb = pg ? openPostgres(pg) : openSqlite();
     g.__aanganDb.catch(() => (g.__aanganDb = undefined));
   }
   return g.__aanganDb;
