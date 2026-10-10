@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+data/*.db
+data/*.db-*
+data/outbox/*
+!data/.gitkeep
+next-env.d.ts
+*.tsbuildinfo
+.claude/

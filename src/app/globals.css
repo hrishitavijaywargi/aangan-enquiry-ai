@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+body { background: #fafaf9; color: #1c1917; font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
