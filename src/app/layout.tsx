@@ -15,7 +15,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
-        <Shell status={systemStatus()}>{children}</Shell>
+        <Shell status={await systemStatus()}>{children}</Shell>
       </body>
     </html>
   );

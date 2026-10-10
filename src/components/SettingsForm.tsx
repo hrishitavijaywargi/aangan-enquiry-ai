@@ -59,12 +59,28 @@ export default function SettingsForm({ initial, status }: { initial: Settings; s
             ["Telephony", status.telephony.live, status.telephony.message],
             ["AI model", status.ai.live, status.ai.message],
             ["Email", status.email.live, status.email.message],
+            ["Database", true, status.database],
           ].map(([name, live, text]) => (
             <li key={String(name)} className="flex gap-2">
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${live ? "bg-emerald-500" : "bg-amber-500"}`} />
               <span>
                 <b>{String(name)}:</b> {String(text)}
               </span>
+            </li>
+          ))}
+        </ul>
+        <h3 className="mt-4 text-sm font-semibold text-stone-800">Optional integrations</h3>
+        <p className="text-xs text-stone-500">Each turns on when its key is set. They run after live calls only; demo data never triggers them.</p>
+        <ul className="mt-2 grid gap-2 md:grid-cols-2">
+          {status.integrations.map((i) => (
+            <li key={i.key} className="rounded-lg border border-stone-200 p-2.5 text-sm">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${i.configured ? "bg-emerald-500" : "bg-stone-300"}`} />
+                <b>{i.name}</b>
+                <span className={`ml-auto text-xs ${i.configured ? "text-emerald-700" : "text-stone-400"}`}>{i.configured ? "On" : "Off"}</span>
+              </div>
+              <div className="mt-1 text-xs text-stone-500">{i.purpose}</div>
+              <div className="mt-0.5 text-xs text-stone-400">{i.message}</div>
             </li>
           ))}
         </ul>

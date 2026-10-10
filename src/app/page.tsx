@@ -6,5 +6,5 @@ export const dynamic = "force-dynamic";
 
 export default async function Page() {
   await ready();
-  return <Dashboard initial={dashboard({})} />;
+  return <Dashboard initial={await dashboard({})} />;
 }

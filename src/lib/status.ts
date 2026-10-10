@@ -1,19 +1,25 @@
 import { aiStatus } from "./ai/provider";
-import { getDb } from "./db";
+import { count, dbKey } from "./db";
 import { emailConfig, emailConfigProblem } from "./email/mailer";
+import { integrationStatus } from "./integrations";
 import { telephonyStatus } from "./telephony";
 
-export function systemStatus() {
+export async function systemStatus() {
   const emailProblem = emailConfigProblem();
-  const demoRows = (getDb().prepare("SELECT COUNT(*) AS n FROM enquiries WHERE is_demo = 1").get() as { n: number }).n;
+  const c = emailConfig();
+  const demoRows = await count("SELECT CAST(COUNT(*) AS INTEGER) AS n FROM enquiries WHERE is_demo = 1");
   return {
     ai: aiStatus(),
     telephony: telephonyStatus(),
     email: {
       live: !emailProblem,
-      message: emailProblem ?? `SMTP configured (${emailConfig().host}). Handoffs to ${emailConfig().handoffTo}, escalations to ${emailConfig().escalationTo}.`,
+      message:
+        emailProblem ??
+        (process.env.RESEND_API_KEY ? `Resend configured. Handoffs to ${c.handoffTo}, escalations to ${c.escalationTo}.` : `SMTP configured (${c.host}). Handoffs to ${c.handoffTo}, escalations to ${c.escalationTo}.`),
     },
+    database: dbKey() === "pg" ? "Postgres (Supabase)" : "SQLite (local file)",
+    integrations: integrationStatus(),
     demoRows,
   };
 }
-export type SystemStatus = ReturnType<typeof systemStatus>;
+export type SystemStatus = Awaited<ReturnType<typeof systemStatus>>;

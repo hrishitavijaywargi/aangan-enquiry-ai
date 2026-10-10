@@ -2,6 +2,6 @@ import { handler } from "@/lib/api";
 import { clearForLive } from "@/lib/seed/seed";
 
 export const POST = handler(async () => {
-  clearForLive();
+  await clearForLive();
   return { ok: true };
 });

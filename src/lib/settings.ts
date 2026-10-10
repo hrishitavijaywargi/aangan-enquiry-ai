@@ -26,8 +26,8 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSendHandoffs: true,
 };
 
-export function getSettings(): Settings {
-  const rows = getDb().prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
+export async function getSettings(): Promise<Settings> {
+  const rows = await (await getDb()).all<{ key: string; value: string }>("SELECT key, value FROM settings");
   const stored: Record<string, unknown> = {};
   for (const r of rows) {
     try {
@@ -45,9 +45,10 @@ const NUMERIC_KEYS: (keyof Settings)[] = [
 ];
 
 /** Validate and persist a partial settings update. Throws with a readable message on bad input. */
-export function updateSettings(patch: Partial<Settings>): Settings {
-  const db = getDb();
-  const stmt = db.prepare("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+export async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
+  const db = await getDb();
+  const pending: [string, string][] = [];
+  const stmt = { run: (k: string, v: string) => pending.push([k, v]) };
   for (const [k, v] of Object.entries(patch) as [keyof Settings, unknown][]) {
     if (!(k in DEFAULT_SETTINGS)) throw new Error(`Unknown setting: ${k}`);
     if (NUMERIC_KEYS.includes(k)) {
@@ -69,9 +70,11 @@ export function updateSettings(patch: Partial<Settings>): Settings {
     }
     stmt.run(k, JSON.stringify(v));
   }
+  // Validate everything first, then write — a bad field never leaves a half-saved update.
+  for (const [k, v] of pending) await db.run("INSERT INTO settings(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", k, v);
   return getSettings();
 }
 
-export function resetSettings() {
-  getDb().exec("DELETE FROM settings");
+export async function resetSettings() {
+  await (await getDb()).exec("DELETE FROM settings");
 }

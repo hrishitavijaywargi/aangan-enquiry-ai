@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EnquiryPage({ params }: { params: Promise<{ id: string }> }) {
   await ready();
-  const d = enquiryDetail((await params).id);
+  const d = await enquiryDetail((await params).id);
   if (!d) notFound();
   const { enquiry: e, fields, qualification: q, messages, calls, handoffs, usage } = d;
   const outstanding = q && q.decision !== "not_applicable" ? outstandingItems(fields, q) : [];
@@ -30,7 +30,7 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
             {e.urgent ? <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">URGENT — human attention</span> : null}
             <span>{TYPE_LABEL[e.enquiry_type]}</span>·<span>{istDateTime(e.created_at)} IST</span>
             {e.after_hours ? <span className="text-amber-700">· after hours</span> : null}
-            <span>· {e.phone_masked}</span>
+            <span>· {e.phone_e164 ?? e.phone_masked}</span>
             {e.is_demo ? <Tag kind="demo" /> : null}
           </span>
         }
@@ -113,6 +113,21 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
               </div>
             )}
           </Card>
+          {d.integrations.length > 0 && (
+            <Card title="Integrations" subtitle="What ran after this call">
+              <ul className="space-y-1.5 text-sm">
+                {d.integrations.map((ev) => (
+                  <li key={ev.id} className="flex gap-2">
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ev.status === "ok" ? "bg-emerald-500" : ev.status === "failed" ? "bg-red-500" : "bg-stone-300"}`} />
+                    <span>
+                      <b className="capitalize">{ev.integration}</b> · {ev.action.replace(/_/g, " ")} — {ev.status}
+                      {ev.detail && <span className="block break-all text-xs text-stone-500">{ev.detail}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card title="After the call" subtitle="Record real outcomes here. Until you do, conversion shows as 'Unavailable' — nothing is assumed.">
             <OutcomeEditor id={e.id} consultation={e.consultation_status} project={e.project_outcome} />
           </Card>

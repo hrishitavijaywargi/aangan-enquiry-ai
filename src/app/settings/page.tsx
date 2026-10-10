@@ -11,7 +11,7 @@ export default async function SettingsPage() {
   return (
     <div>
       <PageHeader title="Settings" description="Integration status, cost assumptions and demo data controls." />
-      <SettingsForm initial={getSettings()} status={systemStatus()} />
+      <SettingsForm initial={await getSettings()} status={await systemStatus()} />
     </div>
   );
 }

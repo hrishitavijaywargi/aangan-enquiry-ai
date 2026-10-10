@@ -2,7 +2,7 @@ import { handler } from "@/lib/api";
 import { createHandoff, enquiryDetail, updateOutcome } from "@/lib/service";
 
 export const GET = handler(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
-  const d = enquiryDetail((await params).id);
+  const d = await enquiryDetail((await params).id);
   if (!d) throw new Error("Enquiry not found");
   return d;
 });

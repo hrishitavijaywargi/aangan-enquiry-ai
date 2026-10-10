@@ -30,14 +30,14 @@ export async function POST(req: Request) {
 
   // Status callback / caller hung up
   if (callId && params.CallStatus && ["completed", "busy", "failed", "no-answer", "canceled"].includes(params.CallStatus)) {
-    if (getCall(callId)) await endCall(callId, "caller_hung_up");
+    if (await getCall(callId)) await endCall(callId, "caller_hung_up");
     return xml("<Response/>");
   }
 
   // New inbound call → ring + answer immediately
   if (!callId) {
-    const s = startCall({ phone: params.From ?? "", provider: "twilio", isDemo: false });
-    const a = answerCall(s.callId);
+    const s = await startCall({ phone: params.From ?? "", provider: "twilio", isDemo: false });
+    const a = await answerCall(s.callId);
     return xml(twimlSayAndGather(a.reply, `${base}?callId=${s.callId}`));
   }
 

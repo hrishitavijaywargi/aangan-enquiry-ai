@@ -3,6 +3,6 @@ import { getDb } from "./db";
 import { ensureSeeded } from "./seed/seed";
 
 export async function ready() {
-  getDb();
+  await getDb();
   await ensureSeeded();
 }

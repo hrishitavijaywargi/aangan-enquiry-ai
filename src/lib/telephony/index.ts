@@ -6,7 +6,7 @@
  */
 import crypto from "node:crypto";
 
-export type TelephonyProviderName = "demo" | "twilio";
+export type TelephonyProviderName = "demo" | "twilio" | "vaani";
 
 export interface TelephonyStatus {
   provider: TelephonyProviderName;
@@ -16,6 +16,12 @@ export interface TelephonyStatus {
 
 export function telephonyStatus(): TelephonyStatus {
   const p = (process.env.TELEPHONY_PROVIDER ?? "demo").toLowerCase();
+  if (p === "vaani") {
+    if (!process.env.VAANI_BYOL_TOKEN) {
+      return { provider: "vaani", live: false, message: "TELEPHONY_PROVIDER=vaani but VAANI_BYOL_TOKEN is missing — the BYOL server will refuse to start. Simulated calls still work." };
+    }
+    return { provider: "vaani", live: true, message: "Vaani Voice (BYOL): real calls are answered by Vaani; every reply is decided by this app's rules engine (run `npm run vaani`). Simulated calls still work." };
+  }
   if (p === "twilio") {
     if (!process.env.TWILIO_AUTH_TOKEN) {
       return { provider: "twilio", live: false, message: "TELEPHONY_PROVIDER=twilio but TWILIO_AUTH_TOKEN is missing — webhook disabled. Running simulated calls only." };

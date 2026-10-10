@@ -6,7 +6,7 @@
  */
 import fs from "node:fs";
 import { mockProvider } from "../ai/provider";
-import { clearAllData, getDb, getMeta, setMeta } from "../db";
+import { claimOnce, clearAllData, count, getDb, getMeta, setMeta } from "../db";
 import { outboxDir } from "../email/mailer";
 import { answerCall, callerSays, endCall, startCall } from "../service";
 import { SCENARIOS, istToDate, scenarioReply, type Scenario } from "./scenarios";
@@ -21,13 +21,12 @@ const jitter = (seed: string, min: number, max: number) => {
 export async function runScenarioCall(sc: Scenario, opts: { start?: Date; isDemo?: boolean } = {}) {
   const ai = mockProvider();
   let t = opts.start ?? istToDate(sc.startedAtIst);
-  const { callId, enquiryId } = startCall({ phone: sc.phone, scenarioKey: sc.key, isDemo: opts.isDemo ?? true }, { at: t });
+  const { callId, enquiryId } = await startCall({ phone: sc.phone, scenarioKey: sc.key, isDemo: opts.isDemo ?? true }, { at: t });
   t = new Date(t.getTime() + jitter(sc.key + "ring", 2, 7) * 1000); // simulated ring before the AI answers
-  let a = answerCall(callId, { at: t });
+  const a = await answerCall(callId, { at: t });
   let question = a.state.lastQuestion;
   let ended = false;
-  let turn = 0;
-  for (; turn < 18 && !ended; turn++) {
+  for (let turn = 0; turn < 18 && !ended; turn++) {
     if (sc.hangUpAfterTurns !== undefined && turn >= sc.hangUpAfterTurns) break;
     const line = scenarioReply(sc, question, turn);
     if (!line) break;
@@ -44,45 +43,48 @@ export async function runScenarioCall(sc: Scenario, opts: { start?: Date; isDemo
 
 export async function seedDemoData() {
   const sorted = [...SCENARIOS].sort((a, b) => a.startedAtIst.localeCompare(b.startedAtIst));
-  // Seeded handoffs stay as previews — never auto-sent, even if SMTP is configured.
-  const db = getDb();
-  const prev = db.prepare("SELECT value FROM settings WHERE key = 'autoSendHandoffs'").get() as { value: string } | undefined;
-  db.prepare("INSERT INTO settings(key, value) VALUES('autoSendHandoffs', 'false') ON CONFLICT(key) DO UPDATE SET value = 'false'").run();
+  // Seeded handoffs stay as previews — never auto-sent, even if email is configured.
+  const db = await getDb();
+  const prev = await db.get<{ value: string }>("SELECT value FROM settings WHERE key = 'autoSendHandoffs'");
+  await db.run("INSERT INTO settings(key, value) VALUES('autoSendHandoffs', 'false') ON CONFLICT(key) DO UPDATE SET value = 'false'");
   try {
     for (const sc of sorted) await runScenarioCall(sc);
   } finally {
-    if (prev) db.prepare("UPDATE settings SET value = ? WHERE key = 'autoSendHandoffs'").run(prev.value);
-    else db.prepare("DELETE FROM settings WHERE key = 'autoSendHandoffs'").run();
+    if (prev) await db.run("UPDATE settings SET value = ? WHERE key = 'autoSendHandoffs'", prev.value);
+    else await db.run("DELETE FROM settings WHERE key = 'autoSendHandoffs'");
   }
-  setMeta("seeded_at", new Date().toISOString());
+  await setMeta("seeded_at", new Date().toISOString());
 }
 
 let seeding: Promise<void> | null = null;
 
-/** Seed once on first use (empty database). */
+/** Seed once on first use (empty database). Safe when several servers start at once. */
 export async function ensureSeeded() {
-  if (getMeta("seeded_at") || getMeta("initialised")) return;
-  const n = (getDb().prepare("SELECT COUNT(*) AS n FROM enquiries").get() as { n: number }).n;
-  if (n > 0) {
-    setMeta("initialised", "1");
+  if ((await getMeta("seeded_at")) || (await getMeta("initialised"))) return;
+  if ((await count("SELECT CAST(COUNT(*) AS INTEGER) AS n FROM enquiries")) > 0) {
+    await setMeta("initialised", "1");
     return;
   }
-  seeding ??= seedDemoData().finally(() => (seeding = null));
+  if (!seeding) {
+    if (!(await claimOnce("seed_lock"))) return; // another server instance is seeding
+    seeding = seedDemoData().finally(() => (seeding = null));
+  }
   await seeding;
 }
 
 export async function resetDemoData() {
-  clearAllData();
+  await clearAllData();
   try {
     for (const f of fs.readdirSync(outboxDir())) if (f.endsWith(".eml")) fs.unlinkSync(`${outboxDir()}/${f}`);
   } catch {
-    /* outbox may not exist yet */
+    /* outbox may not exist (or the filesystem is read-only on serverless hosts) */
   }
+  await claimOnce("seed_lock");
   await seedDemoData();
 }
 
 /** Remove everything, leaving an empty system (e.g. before going live). */
-export function clearForLive() {
-  clearAllData();
-  setMeta("initialised", "1");
+export async function clearForLive() {
+  await clearAllData();
+  await setMeta("initialised", "1");
 }

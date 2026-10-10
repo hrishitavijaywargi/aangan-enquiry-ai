@@ -33,14 +33,58 @@ Copy `.env.example` to `.env.local` and fill in only what you want to enable. Se
 
 The top bar always shows the current mode: **Simulated calls · Mock AI · Email: local only** (amber) or the live equivalents (green).
 
+## 3a. Deployment: Vercel + Supabase
+- **Database:** set `DATABASE_URL` to the Supabase **Transaction pooler** connection string (Project → Connect → Transaction pooler, port 6543). Without it the app uses the local SQLite file. The app creates its tables on startup and enables row-level security, so Supabase's public API key can't read them.
+- **Hosting:** Vercel project linked to the GitHub repo. `vercel.json` runs the functions in Mumbai (`bom1`), next to the database. Add `DATABASE_URL` (and any integration keys) under Vercel → Project → Settings → Environment Variables, then redeploy.
+- **First load** seeds the demo data into Postgres once (a lock in the `meta` table stops two servers seeding at the same time). Settings → *Reset demo data* works the same as locally.
+- **Email on Vercel:** the filesystem is read-only, so without Resend/SMTP a handoff is stored as a preview marked **Not sent**.
+- **Vaani on a deployed app:** Vercel functions can't hold Vaani's WebSocket. Run `npm run vaani` (plus the tunnel) on a machine with the same `DATABASE_URL`, and live calls appear on the deployed dashboard.
+
+## 3b. Optional integrations
+All are off until their key is set; status is on **Settings**, and each enquiry shows what ran. They only run for **live** calls; demo data never triggers them (override with `INTEGRATIONS_INCLUDE_DEMO=true`).
+
+| Integration | Env vars | What it does |
+|---|---|---|
+| Resend | `RESEND_API_KEY`, `EMAIL_FROM` | Sends the designer handoff and escalation emails (preferred over SMTP on Vercel) |
+| Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Instant alert for urgent cases only (complaints, missed follow-ups). Email stays the full record |
+| HubSpot | `HUBSPOT_ACCESS_TOKEN` | Creates a contact and a deal for each qualified lead: pipeline and conversion tracking |
+| Calendly | `CALENDLY_URL` | Booking link inside the designer's handoff email |
+
+Live calls store the caller's full number (`phone_e164`) so the designer can call back; demo data only ever stores a masked number.
+
+## 3c. Real phone calls with Vaani Voice (optional)
+[Vaani Voice](https://vaanivoice.ai) provides the phone number, Indian-English speech recognition and voice. Through its **Bring Your Own LLM (BYOL)** feature, Vaani sends every caller turn to this app over a WebSocket, and speaks back exactly what our rules engine decides. Qualification, the verbatim pricing script and escalations all stay deterministic, and calls appear on the dashboard as real (not demo) data.
+
+1. `.env.local` needs `TELEPHONY_PROVIDER=vaani` and a long random `VAANI_BYOL_TOKEN` (never commit it).
+2. Run the app (`npm run dev`) **and** the BYOL server in a second terminal:
+   ```bash
+   npm run vaani
+   ```
+3. Expose port 8090 publicly, e.g. with Cloudflare's free quick tunnel:
+   ```bash
+   cloudflared tunnel --url http://localhost:8090
+   ```
+   It prints `https://<random>.trycloudflare.com`. The BYOL URL is `wss://<random>.trycloudflare.com/chat/stream`.
+4. In the Vaani dashboard, on your agent:
+   - **Brain → Reasoning Language Model → Bring your Own LLM (BYOL)**: paste the `wss://…/chat/stream` URL, paste the same token into **Auth Token**, **Test Connection**, **Save URL**.
+   - **Fallback LLM: No fallback.** Otherwise Vaani's own model would answer when our server is down, and it isn't bound by our pricing rules.
+   - **Welcome message**: "Thank you for calling Aangan Studio. You're speaking with the studio's virtual assistant. How can I help you today?" The app records whatever Vaani actually says.
+   - **Language**: English (India). The rules engine reads English and Hinglish-in-English-script best.
+   - **Telephony**: assign an inbound number to the agent, or use Vaani's in-dashboard test call.
+5. Check it locally any time with `npx tsx scripts/vaani-smoke-test.ts` (it imitates Vaani). Note this stores one test call as live data; use *Reset demo data* afterwards.
+
+Limitations: the tunnel URL changes every time `cloudflared` restarts (update it in Vaani). Your laptop must stay on during calls. Vaani is in private beta. Keep the built-in simulator as the demo backup.
+
 ## 4. Tests
 ```bash
 npm test
 ```
-96 automated tests (Vitest) in `tests/`:
+110 automated tests (Vitest) in `tests/`:
 - `qualification.test.ts`: every Sept 2026 scenario reaches the right outcome; each of the five criteria; unknown budget; authorised representatives; "does NOT disqualify" rules; the AI can't override the engine.
 - `pricing.test.ts`: the approved script is verbatim; 9 kinds of price question are deflected with no figures; no quote even when area is given; no price in any agent message across all scenarios; the output guard blocks LLM-style leaks.
 - `conversation.test.ts`: one question per turn; no repeated questions; one direct clarification; awaiting-information path; graceful declines; re-qualification when the caller changes timeline; complaint escalation with no promises; missed-commitment flag.
+- `integrations.test.ts`: HubSpot contact + deal for qualified leads, Telegram alert for escalations, demo calls never trigger integrations, failures logged without breaking calls, Resend sent/failed, Calendly link in handoffs, full number kept only for live calls.
+- `vaani.test.ts`: the Vaani BYOL adapter — real (non-demo) call records, verbatim pricing script over the phone, duplicate-line handling, escalation with hang-up, caller hang-up mid-call.
 - `system.test.ts`: dashboard totals equal database counts; filters; conversion shown as unavailable; repeat-call merging; full call → handoff with all required sections; cost maths; missing SMTP / API key / Twilio token handled safely; settings validation.
 
 Type check: `npm run typecheck`.
@@ -81,7 +125,7 @@ Demo data is **not** hand-written rows. Each scenario is played through the same
 8. **Cost Analytics**: projected (mock) vs recorded token labels, telephony at the configured rate, cost per enquiry and per qualified enquiry, monthly projection at 200 enquiries. **Settings**: change the telephony rate and the costs update.
 9. **Enquiry detail → After the call**: set a consultation to *Completed* and a project to *Won*. The dashboard's conversion cards switch from Unavailable to recorded values.
 10. **Settings → Reset demo data** to restore the starting state.
-11. Optional: run `npm test` to show 96 passing tests.
+11. Optional: run `npm test` to show 110 passing tests.
 
 ## 7. Limitations (be upfront about these)
 - **No real phone calls.** Calls are simulated in the browser. The Twilio adapter is implemented (webhook, signature check, speech `<Gather>`) but **has not been tested against a live Twilio account**. Real voice also needs latency tuning and Hindi/Marathi handling.

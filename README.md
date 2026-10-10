@@ -17,4 +17,4 @@ Then open http://localhost:3000 (Node.js 22.13+). Runs fully in demo mode with n
 | [NINE_CHECKS.md](NINE_CHECKS.md) | All nine checks (Kill Switches · Sizing · Boundary) with case evidence; the Cut: per-sq-ft price quoting, killed by 07 |
 | [COMPONENTS_MAP.md](COMPONENTS_MAP.md) | Trigger → Input → Context → Processing → AI → Output, rules, handoff, failure handling |
 
-Tests: `npm test` (96 tests). Reset demo data: Settings → *Reset demo data*, or `npm run reset-demo` (with the dev server stopped).
+Tests: `npm test` (110 tests). Reset demo data: Settings → *Reset demo data*, or `npm run reset-demo` (with the dev server stopped).

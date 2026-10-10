@@ -13,7 +13,7 @@ type SP = Promise<{ status?: string; type?: string; from?: string; to?: string; 
 export default async function EnquiriesPage({ searchParams }: { searchParams: SP }) {
   await ready();
   const sp = await searchParams;
-  const all = loadAll().enquiries;
+  const all = (await loadAll()).enquiries;
   const q = (sp.q ?? "").toLowerCase().trim();
   const rows = applyFilters(all, sp).filter((e) => !q || `${e.ref} ${e.caller_name ?? ""} ${e.fields}`.toLowerCase().includes(q));
   const sel = "rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-sm";

@@ -46,5 +46,6 @@ export const HANDOFF_STATUS: Record<string, string> = {
   preview: "Preview only — not sent",
   saved_locally: "Saved locally (.eml) — NOT sent",
   sent: "Sent",
+  not_sent: "Not sent — no email service configured",
   failed: "Send failed — saved locally",
 };

@@ -16,6 +16,7 @@ export interface HandoffInput {
   summary: string;
   callCount: number;
   isDemo: boolean;
+  calendlyUrl?: string; // studio booking link (Calendly integration)
 }
 
 export interface HandoffNote {
@@ -47,14 +48,15 @@ function timelineLine(f: EnquiryFields): string {
   return parts.join("; ") || "Not stated";
 }
 
-function nextAction(f: EnquiryFields, kind: HandoffNote["kind"]): string {
+function nextAction(f: EnquiryFields, kind: HandoffNote["kind"], calendly?: string): string {
   if (kind === "escalation") return "Studio head / senior team member to call the client back today. Do not treat as a sales lead. Any resolution or commitment must come from the studio, not the AI.";
   const call = f.consultationRequested
     ? `Call the client to confirm the consultation slot${f.preferredSlot ? ` (preference: “${f.preferredSlot}”)` : ""}.`
     : "Call the client to introduce yourself and offer a consultation.";
   const extra = f.missedCommitment ? " PRIORITY: the client said an earlier enquiry was not followed up — call same day." : "";
   const price = (f.pricingQuestionCount ?? 0) > 0 ? " Be ready to walk them through pricing at the consultation (they asked)." : "";
-  return call + extra + price;
+  const book = calendly ? ` Booking link to share with the client: ${calendly}` : "";
+  return call + extra + price + book;
 }
 
 export function buildHandoff(input: HandoffInput): HandoffNote {
@@ -97,7 +99,7 @@ export function buildHandoff(input: HandoffInput): HandoffNote {
 
   const criteria = q.criteria.map((c) => `${c.status === "pass" ? "✔" : c.status === "assumed_pass" ? "⚑" : c.status === "fail" ? "✘" : "?"} ${c.id}. ${CRITERIA_NAMES[c.id]} — ${c.reason}`);
   const missing = kind === "escalation" ? [] : outstandingItems(f, q);
-  const action = nextAction(f, kind);
+  const action = nextAction(f, kind, input.calendlyUrl);
 
   const text = [
     kind === "escalation" ? "EXISTING-CLIENT ESCALATION — needs immediate human attention" : "QUALIFIED LEAD — ready for designer follow-up",

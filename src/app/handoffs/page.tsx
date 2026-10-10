@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function HandoffsPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   await ready();
   const { id } = await searchParams;
-  const all = listHandoffs();
+  const all = await listHandoffs();
   const selected = all.find((h) => h.id === id) ?? all[0];
   const problem = emailConfigProblem();
 

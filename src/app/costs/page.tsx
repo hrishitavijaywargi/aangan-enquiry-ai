@@ -12,9 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CostsPage() {
   await ready();
-  const s = getSettings();
-  const m = dashboard({});
-  const rows = callCostRows();
+  const [s, m, rows] = await Promise.all([getSettings(), dashboard({}), callCostRows()]);
   const ai = aiStatus();
   const c = m.costs;
 
